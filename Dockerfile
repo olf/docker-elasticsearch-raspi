@@ -1,5 +1,7 @@
 FROM arm32v7/alpine:latest
 
+COPY qemu-arm-static /usr/bin
+
 WORKDIR /opt
 
 RUN set -x && \
