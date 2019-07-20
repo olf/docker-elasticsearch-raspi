@@ -40,6 +40,5 @@ RUN : "Create elasticsearch.yml" && { \
 
 ENV JAVA_HOME /usr/lib/jvm/default-jvm
 
-WORKDIR /opt/elasticsearch-5.6.15/bin/
 EXPOSE 9200
-CMD ["elasticsearch"]
+ENTRYPOINT ["/opt/elasticsearch-5.6.15/bin/elasticsearch"]
