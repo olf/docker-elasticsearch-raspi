@@ -6,17 +6,26 @@ WORKDIR /opt
 
 RUN set -x && \
   apk add curl && \
-  apk add bash && \
-  curl -L -O https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.6%2B10/OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
-  tar xf OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
-  rm OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
+  apk add bash
+
+RUN set -x && \
   curl -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.5.2-no-jdk-linux-x86_64.tar.gz && \
   tar xf elasticsearch-7.5.2-no-jdk-linux-x86_64.tar.gz && \
-  rm elasticsearch-7.5.2-no-jdk-linux-x86_64.tar.gz
+  rm elasticsearch-7.5.2-no-jdk-linux-x86_64.tar.gz && \
+  mv /opt/elasticsearch-7.5.2 /opt/elasticsearch
+
+RUN set -x && \
+  apk add openjdk8
+
+# RUN set -x && \
+#   curl -L -O https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.6%2B10/OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
+#   tar xf OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
+#   rm OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
+#   mv /opt/jdk-11.0.6+10 /opt/elasticsearch/jdk
 
 RUN : "Create jvm.options" && { \
-  echo "-Xms256m"; \
-  echo "-Xmx256m"; \
+  echo "-Xms512m"; \
+  echo "-Xmx512m"; \
   echo "-XX:+UseConcMarkSweepGC"; \
   echo "-XX:CMSInitiatingOccupancyFraction=75"; \
   echo "-XX:+UseCMSInitiatingOccupancyOnly"; \
@@ -33,15 +42,21 @@ RUN : "Create jvm.options" && { \
   echo "-Dlog4j2.disable.jmx=true"; \
   echo "-Dlog4j.skipJansi=true"; \
   echo "-XX:+HeapDumpOnOutOfMemoryError"; \
-} | tee /opt/elasticsearch-7.5.2/config/jvm.options
+  } | tee /opt/elasticsearch/config/jvm.options
 
 RUN : "Create elasticsearch.yml" && { \
-  echo "network.host: 0.0.0.0"; \
+  echo "# network.host: _global_"; \
   echo "http.port: 9200"; \
+  echo "# xpack.monitoring.enabled: false"; \
+  echo "xpack.security.enabled: false"; \
+  echo "xpack.ml.enabled: false"; \
   echo "bootstrap.system_call_filter: false"; \
-} | tee /opt/elasticsearch-7.5.2/config/elasticsearch.yml
-
-ENV JAVA_HOME /opt/jdk-11.0.6+10
+  } | tee /opt/elasticsearch/config/elasticsearch.yml
 
 EXPOSE 9200
-ENTRYPOINT ["/opt/elasticsearch-7.5.2/bin/elasticsearch"]
+
+ENV JAVA_HOME /usr/lib/jvm/default-jvm
+# ENV JAVA_HOME /opt/jdk-11.0.6+10
+
+ENTRYPOINT [ "/opt/elasticsearch/bin/elasticsearch" ]
+# CMD /bin/sleep 60m
