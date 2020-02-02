@@ -1,12 +1,12 @@
-FROM arm32v7/alpine:latest
+FROM raspbian/stretch:latest
 
-COPY qemu-arm-static /usr/bin
+# COPY qemu-arm-static /usr/bin
 
 WORKDIR /opt
 
 RUN set -x && \
-  apk add curl && \
-  apk add bash
+  apt-get -yq update && \
+  apt-get -yq install curl
 
 RUN set -x && \
   curl -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.5.2-no-jdk-linux-x86_64.tar.gz && \
@@ -15,21 +15,18 @@ RUN set -x && \
   mv /opt/elasticsearch-7.5.2 /opt/elasticsearch
 
 RUN set -x && \
-  apk add openjdk8
-
-# RUN set -x && \
-#   curl -L -O https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.6%2B10/OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
-#   tar xf OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
-#   rm OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
-#   mv /opt/jdk-11.0.6+10 /opt/elasticsearch/jdk
+  curl -L -O https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.6%2B10/OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
+  tar xf OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
+  rm OpenJDK11U-jdk_arm_linux_hotspot_11.0.6_10.tar.gz && \
+  mv /opt/jdk-11.0.6+10 /opt/elasticsearch/jdk
 
 RUN : "Create jvm.options" && { \
   echo "-Xms512m"; \
   echo "-Xmx512m"; \
-  echo "-XX:+UseConcMarkSweepGC"; \
   echo "-XX:CMSInitiatingOccupancyFraction=75"; \
   echo "-XX:+UseCMSInitiatingOccupancyOnly"; \
   echo "-XX:+AlwaysPreTouch"; \
+  echo "-XX:+UseParallelGC"; \
   echo "-Xss320k"; \
   echo "-Djava.awt.headless=true"; \
   echo "-Dfile.encoding=UTF-8"; \
@@ -45,9 +42,11 @@ RUN : "Create jvm.options" && { \
   } | tee /opt/elasticsearch/config/jvm.options
 
 RUN : "Create elasticsearch.yml" && { \
-  echo "# network.host: _global_"; \
+  echo "node.name: pthagonal"; \
+  echo "cluster.initial_master_nodes: pthagonal"; \
+  echo "network.host: 0.0.0.0"; \
   echo "http.port: 9200"; \
-  echo "# xpack.monitoring.enabled: false"; \
+  echo "xpack.monitoring.enabled: false"; \
   echo "xpack.security.enabled: false"; \
   echo "xpack.ml.enabled: false"; \
   echo "bootstrap.system_call_filter: false"; \
@@ -55,7 +54,7 @@ RUN : "Create elasticsearch.yml" && { \
 
 EXPOSE 9200
 
-ENV JAVA_HOME /usr/lib/jvm/default-jvm
+# ENV JAVA_HOME /usr/lib/jvm/default-jvm
 # ENV JAVA_HOME /opt/jdk-11.0.6+10
 
 ENTRYPOINT [ "/opt/elasticsearch/bin/elasticsearch" ]
